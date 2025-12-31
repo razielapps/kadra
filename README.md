@@ -54,7 +54,7 @@ Author: Conscience Ekhomwandolor
 ### **5-Minute Setup**
 ```bash
 # 1. Download/Clone the tool
-git clone https://github.com/yourusername/kadra.git
+git clone https://github.com/razielapps/kadra.git
 cd kadra
 
 # 2. Make executable
