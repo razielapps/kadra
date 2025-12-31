@@ -1,0 +1,4 @@
+target1.1.1.1
+https://target.com
+www.target.com
+target.com
