@@ -1,0 +1,13 @@
+{
+  "target": "https://target.com",
+  "ip": "https://target.com",
+  "open_services": {
+    "ssh": false,
+    "rdp": false,
+    "ftp": false,
+    "telnet": false,
+    "smtp": false
+  },
+  "credentials_found": [],
+  "timestamp": "2026-01-02T12:07:46.585484"
+}

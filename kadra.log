@@ -1,0 +1,10 @@
+2026-01-02 12:07:46,560 - WARNING - Invalid target format: target1.1.1.1
+2026-01-02 12:07:46,561 - INFO - Loaded 3 valid targets
+2026-01-02 12:07:46,568 - ERROR - CeWL not found! Wordlist generation disabled.
+2026-01-02 12:07:46,574 - ERROR - Hydra not found!
+2026-01-02 12:07:46,584 - ERROR - Could not resolve https://target.com
+2026-01-02 12:07:46,585 - INFO - Scanning https://target.com for services...
+2026-01-02 12:07:46,590 - INFO - Loaded 16 passwords from /home/osboxes/Desktop/kadra/passlist.txt
+2026-01-02 12:07:46,593 - INFO - Results saved to /home/osboxes/Desktop/kadra/results/https___target.com_20260102_120746.json
+2026-01-02 12:07:46,925 - INFO - Scanning 151.101.194.187 for services...
+2026-01-02 12:07:47,299 - INFO - Scanning 151.101.174.187 for services...

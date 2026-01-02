@@ -1,0 +1,18 @@
+============================================================
+KADRA - Credential Bruteforce Summary
+============================================================
+
+Target: https://target.com
+IP Address: https://target.com
+Scan Time: 2026-01-02T12:07:46.585484
+
+Open Services:
+  SSH         closed
+  RDP         closed
+  FTP         closed
+  TELNET      closed
+  SMTP        closed
+
+Credentials Found:
+  No credentials found.
+============================================================
