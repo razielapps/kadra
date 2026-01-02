@@ -9,8 +9,7 @@
 ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
 
 KADRA - Credential Bruteforce Automation Tool
-Version 1.1
-Author Conscience Ekhomwandolor
+Version 1.0 | Author: [REDACTED]
 
 Targeted brute force against SMTP, RDP, FTP, Telnet, SSH
 with intelligent wordlist management and Hydra integration.
@@ -34,6 +33,102 @@ from typing import Dict, List, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ============================================
+# COLOR CLASS FOR TERMINAL OUTPUT
+# ============================================
+class Colors:
+    """ANSI color codes for terminal output"""
+    # Reset
+    RESET = '\033[0m'
+    
+    # Regular Colors
+    BLACK = '\033[30m'
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    WHITE = '\033[37m'
+    
+    # Bold Colors
+    BOLD = '\033[1m'
+    BOLD_RED = '\033[1;31m'
+    BOLD_GREEN = '\033[1;32m'
+    BOLD_YELLOW = '\033[1;33m'
+    BOLD_BLUE = '\033[1;34m'
+    BOLD_MAGENTA = '\033[1;35m'
+    BOLD_CYAN = '\033[1;36m'
+    BOLD_WHITE = '\033[1;37m'
+    
+    # Background Colors
+    BG_RED = '\033[41m'
+    BG_GREEN = '\033[42m'
+    BG_YELLOW = '\033[43m'
+    BG_BLUE = '\033[44m'
+    BG_MAGENTA = '\033[45m'
+    BG_CYAN = '\033[46m'
+    
+    # Styles
+    UNDERLINE = '\033[4m'
+    BLINK = '\033[5m'
+    REVERSE = '\033[7m'
+    
+    @staticmethod
+    def colorize(text: str, color_code: str) -> str:
+        """Apply color to text"""
+        return f"{color_code}{text}{Colors.RESET}"
+    
+    @staticmethod
+    def success(text: str) -> str:
+        """Success message in green"""
+        return Colors.colorize(f"[+] {text}", Colors.BOLD_GREEN)
+    
+    @staticmethod
+    def info(text: str) -> str:
+        """Info message in cyan"""
+        return Colors.colorize(f"[*] {text}", Colors.BOLD_CYAN)
+    
+    @staticmethod
+    def warning(text: str) -> str:
+        """Warning message in yellow"""
+        return Colors.colorize(f"[!] {text}", Colors.BOLD_YELLOW)
+    
+    @staticmethod
+    def error(text: str) -> str:
+        """Error message in red"""
+        return Colors.colorize(f"[-] {text}", Colors.BOLD_RED)
+    
+    @staticmethod
+    def debug(text: str) -> str:
+        """Debug message in magenta"""
+        return Colors.colorize(f"[~] {text}", Colors.MAGENTA)
+    
+    @staticmethod
+    def header(text: str) -> str:
+        """Header text"""
+        return Colors.colorize(f"\n{text}", Colors.BOLD_WHITE + Colors.BG_BLUE)
+    
+    @staticmethod
+    def progress(text: str) -> str:
+        """Progress indicator"""
+        return Colors.colorize(f"[>] {text}", Colors.BOLD_BLUE)
+    
+    @staticmethod
+    def credential(text: str) -> str:
+        """Credential highlight"""
+        return Colors.colorize(text, Colors.BOLD_GREEN)
+    
+    @staticmethod
+    def service(text: str) -> str:
+        """Service name highlight"""
+        return Colors.colorize(text, Colors.BOLD_YELLOW)
+    
+    @staticmethod
+    def target(text: str) -> str:
+        """Target highlight"""
+        return Colors.colorize(text, Colors.BOLD_CYAN)
+
+# ============================================
 # CONFIGURATION
 # ============================================
 class Config:
@@ -46,40 +141,45 @@ class Config:
             'hydra_module': 'ssh',
             'protocol': 'tcp',
             'timeout': 30,
-            'max_attempts': 3
+            'max_attempts': 3,
+            'color': Colors.BOLD_MAGENTA
         },
         'rdp': {
             'port': 3389,
             'hydra_module': 'rdp',
             'protocol': 'tcp',
             'timeout': 45,
-            'max_attempts': 2
+            'max_attempts': 2,
+            'color': Colors.BOLD_BLUE
         },
         'ftp': {
             'port': 21,
             'hydra_module': 'ftp',
             'protocol': 'tcp',
             'timeout': 25,
-            'max_attempts': 3
+            'max_attempts': 3,
+            'color': Colors.BOLD_YELLOW
         },
         'telnet': {
             'port': 23,
             'hydra_module': 'telnet',
             'protocol': 'tcp',
             'timeout': 20,
-            'max_attempts': 3
+            'max_attempts': 3,
+            'color': Colors.BOLD_CYAN
         },
         'smtp': {
             'port': 25,
             'hydra_module': 'smtp',
             'protocol': 'tcp',
             'timeout': 30,
-            'max_attempts': 2
+            'max_attempts': 2,
+            'color': Colors.BOLD_RED
         }
     }
     
     # Performance settings
-    MAX_THREADS = 3
+    MAX_THREADS = 5
     SCAN_TIMEOUT = 10
     BRUTE_TIMEOUT = 300
     
@@ -99,45 +199,94 @@ class Config:
     CEWL_DEPTH = 2
     CEWL_MIN_WORD_LEN = 3
     CEWL_OPTIONS = "--with-numbers --lowercase"
+    
+    # UI Settings
+    PROGRESS_BAR_LENGTH = 50
 
 # ============================================
-# LOGGING SETUP
+# LOGGING SETUP WITH COLORS
 # ============================================
+class ColorFormatter(logging.Formatter):
+    """Custom formatter with colors for different log levels"""
+    
+    FORMATS = {
+        logging.DEBUG: Colors.colorize("%(asctime)s - [~] %(message)s", Colors.MAGENTA),
+        logging.INFO: Colors.colorize("%(asctime)s - [*] %(message)s", Colors.BOLD_CYAN),
+        logging.WARNING: Colors.colorize("%(asctime)s - [!] %(message)s", Colors.BOLD_YELLOW),
+        logging.ERROR: Colors.colorize("%(asctime)s - [-] %(message)s", Colors.BOLD_RED),
+        logging.CRITICAL: Colors.colorize("%(asctime)s - [CRITICAL] %(message)s", Colors.BOLD_RED + Colors.BG_YELLOW)
+    }
+    
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt, datefmt='%H:%M:%S')
+        return formatter.format(record)
+
 def setup_logging(verbose=False):
-    """Configure logging"""
+    """Configure logging with colors"""
     log_level = logging.DEBUG if verbose else logging.INFO
     
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(Config.LOG_FILE),
-            logging.StreamHandler()
-        ]
-    )
+    logger = logging.getLogger()
+    logger.setLevel(log_level)
+    
+    # Remove existing handlers
+    logger.handlers.clear()
+    
+    # Console handler with colors
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(log_level)
+    console_handler.setFormatter(ColorFormatter())
+    
+    # File handler (no colors)
+    file_handler = logging.FileHandler(Config.LOG_FILE)
+    file_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    file_handler.setLevel(logging.DEBUG)
+    
+    logger.addHandler(console_handler)
+    logger.addHandler(file_handler)
     
     # Suppress Hydra's verbose output
     logging.getLogger('subprocess').setLevel(logging.WARNING)
     
-    return logging.getLogger(__name__)
+    return logger
 
 # ============================================
-# BANNER
+# BANNER WITH COLORS
 # ============================================
 def print_banner():
-    """Print KADRA banner"""
-    banner = """
+    """Print KADRA banner with colors"""
+    banner = f"""
+{Colors.BOLD_CYAN}
 ██╗  ██╗ █████╗ ██████╗ ██████╗  █████╗ 
 ██║ ██╔╝██╔══██╗██╔══██╗██╔══██╗██╔══██╗
 █████╔╝ ███████║██║  ██║██████╔╝███████║
 ██╔═██╗ ██╔══██║██║  ██║██╔══██╗██╔══██║
 ██║  ██╗██║  ██║██████╔╝██║  ██║██║  ██║
-╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
+╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝{Colors.RESET}
 
-KADRA - Credential Bruteforce Automation v1.0
-Targeting SSH, RDP, FTP, Telnet, SMTP
+{Colors.BOLD_WHITE}KADRA - Credential Bruteforce Automation v1.0{Colors.RESET}
+{Colors.BOLD_YELLOW}Targeting: {Colors.service('SSH')} | {Colors.service('RDP')} | {Colors.service('FTP')} | {Colors.service('Telnet')} | {Colors.service('SMTP')}{Colors.RESET}
+{Colors.BOLD_CYAN}─────────────────────────────────────────────────────────────{Colors.RESET}
     """
     print(banner)
+
+# ============================================
+# PROGRESS INDICATOR
+# ============================================
+class ProgressBar:
+    """Animated progress bar for long operations"""
+    
+    @staticmethod
+    def show(current: int, total: int, prefix: str = "", suffix: str = ""):
+        """Display progress bar"""
+        percent = 100 * (current / float(total))
+        filled_length = int(Config.PROGRESS_BAR_LENGTH * current // total)
+        bar = f"{Colors.BOLD_GREEN}█{Colors.RESET}" * filled_length + f"{Colors.BLACK}█{Colors.RESET}" * (Config.PROGRESS_BAR_LENGTH - filled_length)
+        
+        print(f"\r{Colors.progress(prefix)} |{bar}| {percent:.1f}% {suffix}", end="\r")
+        if current == total:
+            print()
 
 # ============================================
 # TARGET MANAGEMENT
@@ -155,7 +304,11 @@ class TargetManager:
         
         try:
             with open(filename, 'r') as f:
-                for line in f:
+                lines = f.readlines()
+                total_lines = len(lines)
+                
+                for i, line in enumerate(lines, 1):
+                    ProgressBar.show(i, total_lines, "Loading targets", f"{i}/{total_lines}")
                     line = line.strip()
                     if line and not line.startswith('#'):
                         if TargetManager.validate_target(line):
@@ -163,7 +316,8 @@ class TargetManager:
                         else:
                             logging.warning(f"Invalid target format: {line}")
             
-            logging.info(f"Loaded {len(targets)} valid targets")
+            logging.info(Colors.info(f"Loaded {len(targets)} valid targets"))
+            print()
             return targets
             
         except FileNotFoundError:
@@ -200,10 +354,10 @@ class TargetManager:
             # Try to resolve domain
             try:
                 ip = socket.gethostbyname(target)
-                logging.debug(f"Resolved {target} -> {ip}")
+                logging.debug(f"Resolved {Colors.target(target)} → {Colors.target(ip)}")
                 return ip
             except socket.gaierror:
-                logging.error(f"Could not resolve {target}")
+                logging.error(f"Could not resolve {Colors.target(target)}")
                 return target
 
 # ============================================
@@ -226,6 +380,7 @@ class WordlistGenerator:
         
         for loc in locations:
             if os.path.exists(loc):
+                logging.debug(f"Found CeWL at: {loc}")
                 return loc
         
         # Try to find in PATH
@@ -237,7 +392,7 @@ class WordlistGenerator:
         except:
             pass
         
-        logging.error("CeWL not found! Wordlist generation disabled.")
+        logging.warning("CeWL not found! Wordlist generation disabled.")
         return None
     
     def generate_from_url(self, url: str, target_name: str) -> Optional[str]:
@@ -263,9 +418,10 @@ class WordlistGenerator:
         if Config.CEWL_OPTIONS:
             cmd.extend(Config.CEWL_OPTIONS.split())
         
-        logging.info(f"Generating wordlist for {target_name} from {url}")
+        logging.info(f"Generating wordlist for {Colors.target(target_name)} from {Colors.target(url)}")
         
         try:
+            print(f"{Colors.progress('Generating wordlist')} {Colors.target(target_name)}...", end="")
             process = subprocess.run(
                 cmd,
                 capture_output=True,
@@ -278,39 +434,50 @@ class WordlistGenerator:
                 with open(wordlist_file, 'r') as f:
                     line_count = sum(1 for _ in f)
                 
-                logging.info(f"Generated wordlist with {line_count} words for {target_name}")
+                print(f"\r{Colors.success(f'Generated wordlist with {line_count:,} words for {target_name}')}")
                 return str(wordlist_file)
             else:
-                logging.error(f"CeWL failed: {process.stderr}")
+                print(f"\r{Colors.error(f'CeWL failed for {target_name}')}")
+                logging.debug(f"CeWL stderr: {process.stderr[:100]}")
                 return None
                 
         except subprocess.TimeoutExpired:
-            logging.error(f"CeWL timed out for {target_name}")
+            print(f"\r{Colors.error(f'CeWL timed out for {target_name}')}")
             return None
         except Exception as e:
-            logging.error(f"CeWL error: {e}")
+            print(f"\r{Colors.error(f'CeWL error for {target_name}: {str(e)[:50]}')}")
             return None
     
     def generate_for_targets(self, targets: List[str]) -> Dict[str, str]:
         """Generate wordlists for all targets"""
         wordlists = {}
+        url_targets = [t for t in targets if re.match(r'^https?://', t)]
         
-        for target in targets:
-            # Only generate for URLs
-            if re.match(r'^https?://', target):
-                # Extract filename-safe target name
-                target_name = target.replace('://', '_').replace('/', '_').replace('.', '_')
-                if len(target_name) > 50:
-                    target_name = target_name[:50]
-                
-                wordlist = self.generate_from_url(target, target_name)
-                if wordlist:
-                    wordlists[target] = wordlist
+        if not url_targets:
+            logging.info(Colors.info("No URLs found for wordlist generation"))
+            return {}
+        
+        print(f"{Colors.info(f'Generating wordlists for {len(url_targets)} URL(s)')}")
+        
+        for i, target in enumerate(url_targets, 1):
+            # Extract filename-safe target name
+            target_name = target.replace('://', '_').replace('/', '_').replace('.', '_')
+            if len(target_name) > 50:
+                target_name = target_name[:50]
+            
+            ProgressBar.show(i, len(url_targets), "Generating wordlists", f"{i}/{len(url_targets)}")
+            
+            wordlist = self.generate_from_url(target, target_name)
+            if wordlist:
+                wordlists[target] = wordlist
+        
+        if wordlists:
+            print(f"\n{Colors.success(f'Generated {len(wordlists)} wordlist(s)')}")
         
         return wordlists
 
 # ============================================
-# PORT SCANNER
+# PORT SCANNER WITH VISUAL OUTPUT
 # ============================================
 class PortScanner:
     """Scan for specific service ports"""
@@ -322,16 +489,20 @@ class PortScanner:
         """Scan target for open service ports"""
         open_services = {}
         
-        logging.info(f"Scanning {target_ip} for services...")
+        print(f"{Colors.info(f'Scanning {Colors.target(target_ip)} for services...')}")
         
         for service_name, service_info in self.services.items():
             port = service_info['port']
+            service_color = service_info.get('color', Colors.BOLD_WHITE)
             
             if self.check_port(target_ip, port):
                 open_services[service_name] = True
-                logging.info(f"  [+] {service_name.upper()} open on {target_ip}:{port}")
+                status = f"{Colors.BOLD_GREEN}✓ OPEN{Colors.RESET}"
+                print(f"  {service_color}{service_name.upper():6}{Colors.RESET} :{port:<5} {status}")
             else:
                 open_services[service_name] = False
+                status = f"{Colors.RED}✗ CLOSED{Colors.RESET}"
+                print(f"  {service_color}{service_name.upper():6}{Colors.RESET} :{port:<5} {status}")
         
         return open_services
     
@@ -354,20 +525,24 @@ class PortScanner:
         """Scan multiple targets for open services"""
         results = {}
         
+        print(f"{Colors.header('SERVICE DISCOVERY PHASE')}")
+        
         with ThreadPoolExecutor(max_workers=Config.MAX_THREADS) as executor:
             future_to_target = {
                 executor.submit(self.scan_target, target): target 
                 for target in targets
             }
             
-            for future in as_completed(future_to_target):
+            for i, future in enumerate(as_completed(future_to_target), 1):
                 target = future_to_target[future]
                 try:
                     results[target] = future.result()
+                    ProgressBar.show(i, len(targets), "Scanning targets", f"{i}/{len(targets)}")
                 except Exception as e:
-                    logging.error(f"Scan failed for {target}: {e}")
+                    logging.error(f"Scan failed for {Colors.target(target)}: {e}")
                     results[target] = {}
         
+        print(f"\n{Colors.success('Service discovery completed!')}")
         return results
 
 # ============================================
@@ -385,17 +560,18 @@ class PasswordManager:
         passwords = []
         
         try:
+            print(f"{Colors.progress('Loading password list')} {Colors.target(str(filename))}...", end="")
             with open(filename, 'r') as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith('#'):
                         passwords.append(line)
             
-            logging.info(f"Loaded {len(passwords)} passwords from {filename}")
+            print(f"\r{Colors.success(f'Loaded {len(passwords):,} passwords from {filename.name}')}")
             return passwords
             
         except FileNotFoundError:
-            logging.error(f"Password file not found: {filename}")
+            print(f"\r{Colors.error(f'Password file not found: {filename}')}")
             
             # Create default passlist if it doesn't exist
             default_passwords = [
@@ -408,7 +584,7 @@ class PasswordManager:
                 for pwd in default_passwords:
                     f.write(pwd + '\n')
             
-            logging.info(f"Created default password list with {len(default_passwords)} entries")
+            logging.info(Colors.info(f"Created default password list with {len(default_passwords)} entries"))
             return default_passwords
     
     @staticmethod
@@ -425,7 +601,7 @@ class PasswordManager:
                     if line:
                         words.append(line)
             
-            logging.info(f"Loaded {len(words)} words from {filename}")
+            logging.debug(f"Loaded {len(words):,} words from {filename}")
             return words
             
         except Exception as e:
@@ -451,6 +627,7 @@ class HydraEngine:
         
         for loc in locations:
             if os.path.exists(loc):
+                logging.debug(f"Found Hydra at: {loc}")
                 return loc
         
         # Try to find in PATH
@@ -462,7 +639,7 @@ class HydraEngine:
         except:
             pass
         
-        logging.error("Hydra not found!")
+        logging.error("Hydra not found! Please install THC-Hydra.")
         return None
     
     def build_hydra_command(self, target_ip: str, service: str, 
@@ -524,7 +701,8 @@ class HydraEngine:
         if not cmd:
             return {'error': 'Could not build command'}
         
-        logging.info(f"Executing Hydra against {target_ip}:{service}")
+        service_color = Config.SERVICES[service].get('color', Colors.BOLD_WHITE)
+        logging.info(f"Executing Hydra against {service_color}{service.upper()}{Colors.RESET} on {Colors.target(target_ip)}")
         
         try:
             process = subprocess.run(
@@ -605,7 +783,7 @@ class HydraEngine:
                 pass
 
 # ============================================
-# BRUTEFORCE ORCHESTRATOR
+# BRUTEFORCE ORCHESTRATOR WITH VISUAL OUTPUT
 # ============================================
 class BruteforceOrchestrator:
     """Orchestrate brute force attacks"""
@@ -630,9 +808,20 @@ class BruteforceOrchestrator:
         
         target_ip = target_results['ip']
         
+        print(f"\n{Colors.header(f'ATTACKING TARGET: {Colors.target(target)}')}")
+        print(f"{Colors.info(f'Resolved IP: {Colors.target(target_ip)}')}")
+        
         # 1. Scan for open services
         open_services = self.scanner.scan_target(target_ip)
         target_results['open_services'] = open_services
+        
+        # Check if any services are open
+        open_count = sum(1 for is_open in open_services.values() if is_open)
+        if open_count == 0:
+            print(f"{Colors.warning(f'No open services found on {Colors.target(target_ip)}')}")
+            return target_results
+        
+        print(f"{Colors.success(f'Found {open_count} open service(s)')}")
         
         # 2. Load common password list
         common_passwords = PasswordManager.load_passlist()
@@ -644,11 +833,13 @@ class BruteforceOrchestrator:
             target_words = PasswordManager.load_wordlist(target_wordlist)
         
         # 4. Attack each open service
+        print(f"\n{Colors.header('BRUTEFORCE PHASE')}")
         for service, is_open in open_services.items():
             if not is_open:
                 continue
             
-            logging.info(f"Attacking {service.upper()} on {target_ip}")
+            service_color = Config.SERVICES[service].get('color', Colors.BOLD_WHITE)
+            print(f"\n{Colors.progress(f'Attacking {service_color}{service.upper()}{Colors.RESET} service...')}")
             
             # Try common passwords first
             creds = self.attack_service(
@@ -658,11 +849,12 @@ class BruteforceOrchestrator:
             
             if creds:
                 target_results['credentials_found'].extend(creds)
-                logging.info(f"  [+] Found {len(creds)} credential(s) with common passwords")
+                print(f"  {Colors.success(f'Found {len(creds)} credential(s) with common passwords!')}")
                 continue  # Move to next service
             
             # If no success with common passwords, try target wordlist
             if target_words:
+                print(f"  {Colors.info('Trying target-specific wordlist...')}")
                 creds = self.attack_service(
                     target_ip, service, target_words,
                     use_common=False, target_name=target
@@ -670,7 +862,11 @@ class BruteforceOrchestrator:
                 
                 if creds:
                     target_results['credentials_found'].extend(creds)
-                    logging.info(f"  [+] Found {len(creds)} credential(s) with target wordlist")
+                    print(f"  {Colors.success(f'Found {len(creds)} credential(s) with target wordlist!')}")
+                else:
+                    print(f"  {Colors.warning('No credentials found with target wordlist')}")
+            else:
+                print(f"  {Colors.warning('No target-specific wordlist available')}")
         
         return target_results
     
@@ -684,7 +880,7 @@ class BruteforceOrchestrator:
         # Create temp password file
         import tempfile
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-            for pwd in passwords:
+            for pwd in passwords[:1000]:  # Limit to first 1000 passwords for speed
                 f.write(pwd + '\n')
             temp_file = f.name
         
@@ -693,7 +889,9 @@ class BruteforceOrchestrator:
             common_usernames = self.get_service_usernames(service)
             
             # Try each common username
-            for username in common_usernames:
+            for i, username in enumerate(common_usernames[:5], 1):  # Limit to first 5 usernames
+                ProgressBar.show(i, min(5, len(common_usernames)), f"Testing {service}", f"User: {username}")
+                
                 result = self.hydra.execute_attack(
                     target_ip, service, temp_file, username
                 )
@@ -705,8 +903,10 @@ class BruteforceOrchestrator:
                             cred['username'] = username
                         cred['password_source'] = 'common' if use_common else 'target'
                     
+                    print()  # New line after progress bar
                     return result['credentials']
             
+            print()  # New line after progress bar
             return []
             
         finally:
@@ -745,19 +945,22 @@ class BruteforceOrchestrator:
         """Run brute force against multiple targets"""
         all_results = {}
         
+        print(f"\n{Colors.header('STARTING BRUTEFORCE ATTACKS')}")
+        print(f"{Colors.info(f'Targets: {len(targets)} | Threads: {Config.MAX_THREADS}')}")
+        
         with ThreadPoolExecutor(max_workers=Config.MAX_THREADS) as executor:
             future_to_target = {
                 executor.submit(self.run_against_target, target, wordlists): target 
                 for target in targets
             }
             
-            for future in as_completed(future_to_target):
+            for i, future in enumerate(as_completed(future_to_target), 1):
                 target = future_to_target[future]
                 try:
                     all_results[target] = future.result()
-                    self.save_results(target, all_results[target])
+                    ProgressBar.show(i, len(targets), "Overall progress", f"Target {i}/{len(targets)}")
                 except Exception as e:
-                    logging.error(f"Brute force failed for {target}: {e}")
+                    logging.error(f"Brute force failed for {Colors.target(target)}: {e}")
                     all_results[target] = {'error': str(e)}
         
         return all_results
@@ -774,7 +977,7 @@ class BruteforceOrchestrator:
         with open(results_file, 'w') as f:
             json.dump(results, f, indent=2, default=str)
         
-        logging.info(f"Results saved to {results_file}")
+        logging.info(f"Results saved to {Colors.target(str(results_file))}")
         
         # Also save summary
         self.save_summary(target, results)
@@ -829,13 +1032,14 @@ def main():
     parser = argparse.ArgumentParser(
         description='KADRA - Credential Bruteforce Automation Tool',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog='''
-Examples:
-  python3 kadra.py                         # Run with default targets.txt
-  python3 kadra.py --targets my_targets.txt
-  python3 kadra.py --target 192.168.1.1   # Single target
-  python3 kadra.py --no-wordlists         # Skip wordlist generation
-  python3 kadra.py --verbose              # Detailed output
+        epilog=f'''
+{Colors.BOLD_YELLOW}Examples:{Colors.RESET}
+  {Colors.BOLD_CYAN}python3 kadra.py{Colors.RESET}                         # Run with default targets.txt
+  {Colors.BOLD_CYAN}python3 kadra.py --targets my_targets.txt{Colors.RESET}
+  {Colors.BOLD_CYAN}python3 kadra.py --target 192.168.1.1{Colors.RESET}   # Single target
+  {Colors.BOLD_CYAN}python3 kadra.py --no-wordlists{Colors.RESET}         # Skip wordlist generation
+  {Colors.BOLD_CYAN}python3 kadra.py --verbose{Colors.RESET}              # Detailed output
+  {Colors.BOLD_CYAN}python3 kadra.py --threads 10{Colors.RESET}           # Use 10 threads
         '''
     )
     
@@ -873,54 +1077,75 @@ Examples:
         targets = TargetManager.load_targets()
     
     if not targets:
-        print("[!] No valid targets found.")
-        print(f"[] Create {Config.TARGETS_FILE} or use --target option")
+        print(Colors.error("No valid targets found."))
+        print(Colors.info(f"Create {Config.TARGETS_FILE} or use --target option"))
         sys.exit(1)
-    
-    print(f"[] Loaded {len(targets)} target(s)")
     
     # Generate wordlists (if not disabled)
     wordlists = {}
     if not args.no_wordlists:
-        print("[] Generating wordlists from URLs...")
+        print(f"\n{Colors.header('WORDLIST GENERATION')}")
         generator = WordlistGenerator()
         wordlists = generator.generate_for_targets(targets)
-        if wordlists:
-            print(f"    Generated {len(wordlists)} wordlist(s)")
     
     # Run brute force
-    print("\n[] Starting credential brute force...")
-    print("[] Targeting SSH, RDP, FTP, Telnet, SMTP")
-    print("[] Strategy: Common passwords -> Target wordlists")
-    print()
+    print(f"\n{Colors.header('STARTING KADRA BRUTEFORCE')}")
+    print(f"{Colors.info('Attack Strategy:')}")
+    print(f"  1. {Colors.success('Common passwords')} (default list)")
+    print(f"  2. {Colors.success('Target-specific wordlists')} (CeWL generated)")
+    print(f"{Colors.info('Targeted Services:')}")
+    for service, info in Config.SERVICES.items():
+        service_color = info.get('color', Colors.BOLD_WHITE)
+        print(f"  {service_color}• {service.upper():<6}{Colors.RESET} :{info['port']}")
+    
+    input(f"\n{Colors.warning('Press Enter to start the attack or Ctrl+C to cancel...')}")
     
     orchestrator = BruteforceOrchestrator()
     results = orchestrator.run_against_targets(targets, wordlists)
     
     # Print final summary
-    print("\n" + "=" * 60)
-    print("KADRA - FINAL SUMMARY")
-    print("=" * 60)
+    print(f"\n{Colors.header('FINAL SUMMARY')}")
     
+    total_targets = len(results)
     total_creds = 0
+    successful_targets = 0
+    
     for target, result in results.items():
         creds = result.get('credentials_found', [])
         if creds:
-            print(f"\n[+] {target}")
-            for cred in creds:
-                print(f"    Service: {cred.get('service')}")
-                print(f"    Username: {cred.get('username')}")
-                print(f"    Password: {cred.get('password')}")
-                print(f"    Source: {cred.get('password_source', 'unknown')}")
-                print()
+            successful_targets += 1
             total_creds += len(creds)
-        else:
-            print(f"[-] {target}: No credentials found")
     
-    print(f"\n[] Total credentials found: {total_creds}")
-    print(f"[] Results saved in: {Config.RESULTS_DIR}")
-    print(f"[] Log file: {Config.LOG_FILE}")
-    print("=" * 60)
+    # Summary box
+    print(f"{Colors.BOLD_CYAN}┌{'─' * 58}┐{Colors.RESET}")
+    print(f"{Colors.BOLD_CYAN}│{Colors.RESET} {Colors.BOLD_WHITE}KADRA - Attack Results Summary{' ' * 25}{Colors.BOLD_CYAN}│{Colors.RESET}")
+    print(f"{Colors.BOLD_CYAN}├{'─' * 58}┤{Colors.RESET}")
+    print(f"{Colors.BOLD_CYAN}│{Colors.RESET} {Colors.info('Targets Scanned:')} {Colors.BOLD_WHITE}{total_targets:>42}{Colors.BOLD_CYAN} │{Colors.RESET}")
+    print(f"{Colors.BOLD_CYAN}│{Colors.RESET} {Colors.success('Successful Attacks:')} {Colors.BOLD_GREEN}{successful_targets:>39}{Colors.BOLD_CYAN} │{Colors.RESET}")
+    print(f"{Colors.BOLD_CYAN}│{Colors.RESET} {Colors.credential('Credentials Found:')} {Colors.BOLD_GREEN}{total_creds:>39}{Colors.BOLD_CYAN} │{Colors.RESET}")
+    print(f"{Colors.BOLD_CYAN}├{'─' * 58}┤{Colors.RESET}")
+    print(f"{Colors.BOLD_CYAN}│{Colors.RESET} {Colors.info('Results Directory:')} {Colors.target(str(Config.RESULTS_DIR)):<35}{Colors.BOLD_CYAN} │{Colors.RESET}")
+    print(f"{Colors.BOLD_CYAN}│{Colors.RESET} {Colors.info('Log File:')} {Colors.target(str(Config.LOG_FILE)):<42}{Colors.BOLD_CYAN} │{Colors.RESET}")
+    print(f"{Colors.BOLD_CYAN}└{'─' * 58}┘{Colors.RESET}")
+    
+    # Show credentials found
+    if total_creds > 0:
+        print(f"\n{Colors.success('CREDENTIALS DISCOVERED:')}")
+        for target, result in results.items():
+            creds = result.get('credentials_found', [])
+            if creds:
+                print(f"\n{Colors.target(f'Target: {target}')}")
+                for i, cred in enumerate(creds, 1):
+                    service_color = Config.SERVICES[cred.get('service', '')].get('color', Colors.BOLD_WHITE)
+                    print(f"  {Colors.BOLD_WHITE}{i}.{Colors.RESET} {service_color}{cred.get('service', '').upper():<6}{Colors.RESET}")
+                    print(f"     {Colors.BOLD_CYAN}Username:{Colors.RESET} {Colors.credential(cred.get('username', ''))}")
+                    print(f"     {Colors.BOLD_CYAN}Password:{Colors.RESET} {Colors.credential(cred.get('password', ''))}")
+                    print(f"     {Colors.BOLD_CYAN}Source:{Colors.RESET} {cred.get('password_source', 'unknown')}")
+    else:
+        print(f"\n{Colors.warning('No credentials were found during this attack.')}")
+        print(f"{Colors.info('Try using different password lists or increasing timeout values.')}")
+    
+    print(f"\n{Colors.success('KADRA execution completed!')}")
 
 # ============================================
 # QUICK SETUP SCRIPT
@@ -928,7 +1153,7 @@ Examples:
 def create_setup_script():
     """Create setup script for KADRA"""
     setup_content = '''#!/bin/bash
-echo "[+] Setting up KADRA..."
+echo -e "\033[1;36m[+] Setting up KADRA...\033[0m"
 
 # Install dependencies
 sudo apt update
@@ -956,39 +1181,40 @@ EOF
 # Make script executable
 chmod +x kadra.py
 
-echo "[+] Setup complete!"
-echo "[] Edit targets.txt with your targets"
-echo "[] Run: python3 kadra.py"
+echo -e "\033[1;32m[+] Setup complete!\033[0m"
+echo -e "\033[1;33m[*] Edit targets.txt with your targets\033[0m"
+echo -e "\033[1;33m[*] Run: python3 kadra.py\033[0m"
 '''
 
     with open('setup_kadra.sh', 'w') as f:
         f.write(setup_content)
     
     os.chmod('setup_kadra.sh', 0o755)
-    print("[] Created setup_kadra.sh")
-    print("[] Run: sudo bash setup_kadra.sh")
+    print(Colors.info("Created setup_kadra.sh"))
+    print(Colors.info("Run: sudo bash setup_kadra.sh"))
 
 # ============================================
 # ENTRY POINT
 # ============================================
 if __name__ == "__main__":
-    # Create directories if they don't exist
-    Config.WORDLIST_DIR.mkdir(exist_ok=True)
-    Config.RESULTS_DIR.mkdir(exist_ok=True)
-    
-    # Check for setup
-    if not Config.PASSLIST_FILE.exists():
-        print("[!] Password list not found. Creating default...")
-        PasswordManager.load_passlist()  # This creates default
-    
-    # Run main
     try:
+        # Create directories if they don't exist
+        Config.WORDLIST_DIR.mkdir(exist_ok=True)
+        Config.RESULTS_DIR.mkdir(exist_ok=True)
+        
+        # Check for setup
+        if not Config.PASSLIST_FILE.exists():
+            print(Colors.warning("Password list not found. Creating default..."))
+            PasswordManager.load_passlist()  # This creates default
+        
+        # Run main
         main()
+        
     except KeyboardInterrupt:
-        print("\n\n[] KADRA interrupted by user")
+        print(f"\n\n{Colors.error('KADRA interrupted by user')}")
         sys.exit(0)
     except Exception as e:
-        logging.error(f"Fatal error: {e}")
+        print(f"\n{Colors.error(f'Fatal error: {e}')}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
