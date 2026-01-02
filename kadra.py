@@ -9,7 +9,7 @@
 ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝
 
 KADRA - Credential Bruteforce Automation Tool
-Version 1.0 | Author: [REDACTED]
+Version 1.3 | Author: CONSCIENCE EKHOMWANDOLOR
 
 Targeted brute force against SMTP, RDP, FTP, Telnet, SSH
 with intelligent wordlist management and Hydra integration.
@@ -264,7 +264,7 @@ def print_banner():
 ██╔═██╗ ██╔══██║██║  ██║██╔══██╗██╔══██║
 ██║  ██╗██║  ██║██████╔╝██║  ██║██║  ██║
 ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝{Colors.RESET}
-
+{Colors.BOLD_WHITE}AUTHOR - CONSCIENCE EKHOMWANDOLOR{Colors.RESET}
 {Colors.BOLD_WHITE}KADRA - Credential Bruteforce Automation v1.0{Colors.RESET}
 {Colors.BOLD_YELLOW}Targeting: {Colors.service('SSH')} | {Colors.service('RDP')} | {Colors.service('FTP')} | {Colors.service('Telnet')} | {Colors.service('SMTP')}{Colors.RESET}
 {Colors.BOLD_CYAN}─────────────────────────────────────────────────────────────{Colors.RESET}
